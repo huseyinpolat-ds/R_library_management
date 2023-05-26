@@ -17,92 +17,37 @@ sourceCpp("card_number_validate.cpp")
 
 ####### Mobile validate API
 
-# mobile_validate_via_api = function (mobile) {
-# 
-#   if(!is.character(mobile))
-#     stop("Error: Phone number should be written as string!")
-# 
-#   only_digits <- gsub("[^0-9]","\\", mobile)
-# 
-#   if(nchar(only_digits) < 10)
-#     # 10 is selected approximately, there is no concrete reasoning behind as
-#     # I am not familiar with each country'mobile phone number format
-#     stop("Error: Phone number should contain country code and cannot be shorter than 10 digits!")
-# 
-# 
-#   listout = list()
-# 
-#   if (substr(mobile,1,3) == '+90') {
-#     listout$country_name = "Turkey"
-#   } else if (substr(mobile,1,3) == '+44') {
-#     listout$country_name = "UK"
-#   } else if (substr(mobile,1,3) == '+48') {
-#     listout$country_name = "Poland"
-#   } else {
-#     listout$country_name = "US"
-#   }
-# 
-# 
-#   listout$is_valid = TRUE
-# 
-#   listout$type = "mobile"
-# 
-# 
-#   #     if(!require(httr)){
-#   #         install.packages("httr")
-#   #     }
-#   #     if(!require(jsonlite)){
-#   #         install.packages("jsonlite")
-#   #     }
-# 
-# 
-#   #     library(httr)
-#   #     library(jsonlite)
-# 
-# 
-#   #     api_call_key = "https://phonevalidation.abstractapi.com/v1/?api_key=0e51948306fb42569606aef1df25f894&phone="
-# 
-#   #     res = GET(paste(api_call_key, mobile, sep = ""))
-# 
-#   #     data = fromJSON(rawToChar(res$content))
-# 
-#   #     listout = list(is_valid = data$valid, country_name = data$country$name, type = data$type)
-# 
-#   return(listout)
-# 
-# }
-
 mobile_validate_via_api = function (mobile) {
 
-  if(!is.character(mobile))
+  if(!is.character(mobile)) # Checking if given number is in characters
     stop("Error: Phone number should be written as string!")
 
-  only_digits <- gsub("[^0-9]","\\", mobile)
+  only_digits <- gsub("[^0-9]","\\", mobile) # removing everything excep digits
 
   if(nchar(only_digits) < 10)
-    # 10 is selected approximately, there is no concrete reasoning behind as
+    # 10 is selected approximately, there is no concrete reasoning behind
     # I am not familiar with each country'mobile phone number format
     stop("Error: Phone number should contain country code and cannot be shorter than 10 digits!")
 
   if(!require(httr)){
-    install.packages("httr")
+    install.packages("httr") # Necessary library
   }
   if(!require(jsonlite)){
-    install.packages("jsonlite")
+    install.packages("jsonlite") # Necessary library
   }
 
 
-  library(httr)
+  library(httr) # Load libraries
   library(jsonlite)
 
 
-  api_call_key = "https://phonevalidation.abstractapi.com/v1/?api_key=0e51948306fb42569606aef1df25f894&phone="
+  api_call_key = "https://phonevalidation.abstractapi.com/v1/?api_key=0e51948306fb42569606aef1df25f894&phone=" # API address and key
 
-  res = GET(paste(api_call_key, mobile, sep = ""))
+  res = GET(paste(api_call_key, mobile, sep = "")) # Making API call with the key and given phone number
 
-  data = fromJSON(rawToChar(res$content))
+  data = fromJSON(rawToChar(res$content)) # Parsing JSON response
 
-  listout = list(is_valid = data$valid, country_name = data$country$name, type = data$type)
+  listout = list(is_valid = data$valid, country_name = data$country$name, type = data$type) # Selecting necessary output variables
 
   return(listout)
 
@@ -133,7 +78,7 @@ Book <-
         private$publisher <- publisher
         private$date_added <- Sys.time()
         private$.is_removed <- FALSE
-        private$.date_removed <- as.POSIXct(NA)
+        private$.date_removed <- as.POSIXct(NA) # NA date
         private$.is_borrowed <- FALSE
       },
       
@@ -424,21 +369,21 @@ Library <- R6Class(
       idx2 <- which(sapply(private$members, function(t) {
         identical(t$dict()$Card.Number, member_card_number) # Search if there's a member with given card number
       }))
-      if (length(idx2) > 0) {
+      if (length(idx2) > 0) { # If there is a member with given card number
         member <- private$members[[idx2]]
-      } else {
+      } else { # If there is no member with given card number
         stop("Error: Member not found.")
       }
       if (book$dict()$Is.Borrowed == FALSE) {
         transaction <-
-          Transaction$new(book, member, Sys.time(), as.Date(NA))
-        private$transactions <- c(private$transactions, transaction)
+          Transaction$new(book, member, Sys.time(), as.Date(NA)) # Create a transaction instance
+        private$transactions <- c(private$transactions, transaction) # Add transaction to library
         private$transactions_df <-
-          rbind(private$transactions_df, transaction$dict())
-        private$books[[idx]]$borrow()
+          rbind(private$transactions_df, transaction$dict()) # Add transaction to library transactions dataframe
+        private$books[[idx]]$borrow() # Mark book as borrowed
         private$books_df[private$books_df$ISBN == isbn & 
                            private$books_df$Is.Removed == FALSE, 
-                         "Is.Borrowed"] = TRUE
+                         "Is.Borrowed"] = TRUE # Mark book as borrowed
       }
       
       else {
@@ -451,12 +396,12 @@ Library <- R6Class(
       member_card_number <- card_number_validate(member_card_number)
       return_date <- Sys.time()
       
-      idx <- which(sapply(private$transactions, function(t) {
+      idx <- which(sapply(private$transactions, function(t) { # Checking if there is a matching transaction (only actively borrowed ones)
         identical(t$dict()$ISBN, isbn) &
           identical(t$dict()$Member.Card.Number, member_card_number) &
           is.na(t$dict()$Return.Date)
       }))
-      if (length(idx) > 0) {
+      if (length(idx) > 0) { # If there's a matching transaction
         private$transactions[[idx]]$update_return_date(return_date)
         private$transactions_df[private$transactions_df["ISBN"] == isbn &
                                   private$transactions_df["Member.Card.Number"] == member_card_number,
